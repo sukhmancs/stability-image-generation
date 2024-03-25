@@ -1,3 +1,5 @@
+# This is just a template to upscale an image using the Stability API. The code is written in Python and uses the requests library to make a POST request to the Stability API. The code reads the image file from the local directory, sends it to the API, and saves the upscaled image in the "out" directory.
+
 import base64
 import os
 import requests
