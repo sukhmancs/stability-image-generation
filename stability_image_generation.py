@@ -42,84 +42,95 @@ class MyClient(discord.Client):
 
         # provide help
         if message.content == '!help':
-            await message.channel.send('To generate an image, type "!style_preset,negative_prompt,positive_prompt,cfg_scale,samples". For example: "!anime,blurry,A painting of a cat,5,1"')
+            style_preset = f"anime, digital-art, comic-book, photographic, fantasy-art, enhance, isometric, low-poly, origami, cinematic, pixel-art, tile-texture, 3d-model"
+            negative_prompt = f"blurry, bad, low-quality, poor, pixelated, noisy, artifact"
+            positive_prompt = f"an image of a cat, a painting of a cat, a drawing of a cat, an image of an elf"
+            cfg_scale = f"1, 2, 3, 4, 5" # higher the value more AI will stick to the prompt            
+            samples = f"1, 2, 3, 4, 5" # how many images to generate
+            await message.channel.send(f'To generate an image, type "!style_preset,negative_prompt,positive_prompt,cfg_scale,samples". For example: "!anime,blurry,A painting of a cat,5,1
+                                       \nFollowing are the available options:
+                                       \nStyle Preset: {style_preset}\nNegative Prompt: {negative_prompt}\nPositive Prompt: {positive_prompt}\nCfg Scale: {cfg_scale}\nSamples: {samples}"')            
             return
         
-        # check message content and respond accordingly
-        # generate image
-        if message.content.startswith('!'):
-            # split the message content
-            message.content = message.content[1:]
-            parts = message.content.split(',')
+        try:
+            # check message content and respond accordingly
+            # generate image
+            if message.content.startswith('!'):
+                # split the message content
+                message.content = message.content[1:]
+                parts = message.content.split(',')
 
-            # show the warning message if the message is not in the correct format
-            if len(parts) != 5:
-                await message.channel.send('Please provide the correct format. Type "!help" for more information.')
-                return                
-            else:                
-                style_preset = parts[0] # anime, art, etc.
-                negative_prompt = parts[1] # bad, blurry, etc.
-                positive_prompt = parts[2] # good, sharp, etc.
-                cfg_scale = parts[3] # 1, 2, 3, 4, 5
-                samples = parts[4] # 1, 2, 3, 4, 5
+                # show the warning message if the message is not in the correct format
+                if len(parts) != 5:
+                    await message.channel.send('Please provide the correct format. Type "!help" for more information.')
+                    return                
+                else:                
+                    style_preset = parts[0] # anime, art, etc.
+                    negative_prompt = parts[1] # bad, blurry, etc.
+                    positive_prompt = parts[2] # good, sharp, etc.
+                    cfg_scale = parts[3] # 1, 2, 3, 4, 5
+                    samples = parts[4] # 1, 2, 3, 4, 5
 
-            body = {
-                "steps": 40,
-                "width": 1024,
-                "height": 1024,
-                "seed": 0,
-                "cfg_scale": int(cfg_scale),
-                "samples": int(samples),
-                "style_preset": style_preset,
-                "text_prompts": [
-                    {
-                        "text": positive_prompt,
-                        "weight": 1
-                    },
-                    {
-                        "text": negative_prompt,
-                        "weight": -1
-                    }
-                ],
-            }
-            # countdown
-            default_message = await message.channel.send("Generating image...")
-            countdown_message = await message.channel.send("7")
-            for i in range(6, 0, -1):
-                await countdown_message.edit(content=str(i))
-                await asyncio.sleep(1)
+                body = {
+                    "steps": 40,
+                    "width": 1024,
+                    "height": 1024,
+                    "seed": 0,
+                    "cfg_scale": int(cfg_scale),
+                    "samples": int(samples),
+                    "style_preset": style_preset,
+                    "text_prompts": [
+                        {
+                            "text": positive_prompt,
+                            "weight": 1
+                        },
+                        {
+                            "text": negative_prompt,
+                            "weight": -1
+                        }
+                    ],
+                }
+                # countdown
+                default_message = await message.channel.send("Generating image...")
+                countdown_message = await message.channel.send("7")
+                for i in range(6, 0, -1):
+                    await countdown_message.edit(content=str(i))
+                    await asyncio.sleep(1)
+                    
+                    # delete the countdown message
+                    if i == 1:
+                        await countdown_message.delete()
+                        await default_message.edit(content="Image will be sent shortly...")
+
+                start_time = time.time() # start the timer
+
+                response = requests.post(
+                    url,
+                    headers=headers,
+                    json=body,
+                )
+
+                end_time = time.time() # end the timer
+
+                time_elapsed = end_time - start_time
+                                
+                if response.status_code != 200:
+                    raise Exception("Non-200 response: " + str(response.text))
+
+                data = response.json()                      
                 
-                # delete the countdown message
-                if i == 1:
-                    await countdown_message.delete()
-                    await default_message.edit(content="Image will be sent shortly...")
-
-            start_time = time.time() # start the timer
-
-            response = requests.post(
-                url,
-                headers=headers,
-                json=body,
-            )
-
-            end_time = time.time() # end the timer
-
-            time_elapsed = end_time - start_time
-
-            if response.status_code != 200:
-                raise Exception("Non-200 response: " + str(response.text))
-
-            data = response.json()                      
-            
-            for i, image in enumerate(data["artifacts"]):
-                image_bytes = base64.b64decode(image["base64"])
-                image_file = io.BytesIO(image_bytes)
-                image_file.name = f'txt2img_{image["seed"]}.png'                 
-                await message.channel.send(file=discord.File(image_file))
-            
-            await default_message.delete() # delete the default message         
-            await message.channel.send(f"Time elapsed: {time_elapsed:.2f} seconds")   
-
+                for i, image in enumerate(data["artifacts"]):
+                    image_bytes = base64.b64decode(image["base64"])
+                    image_file = io.BytesIO(image_bytes)
+                    image_file.name = f'txt2img_{image["seed"]}.png'                 
+                    await message.channel.send(file=discord.File(image_file))
+                
+                await default_message.delete() # delete the default message         
+                await message.channel.send(f"Time elapsed: {time_elapsed:.2f} seconds")   
+        except ValueError as e:
+            await message.channel.send(str(e))
+        except Exception as e:
+            await message.channel.send("An error occurred: " + str(e))
     
     async def on_reaction_add(self, reaction, user):
         """Called whenever a reaction is added to a message."""
