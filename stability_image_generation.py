@@ -47,9 +47,7 @@ class MyClient(discord.Client):
             positive_prompt = f"an image of a cat, a painting of a cat, a drawing of a cat, an image of an elf"
             cfg_scale = f"1, 2, 3, 4, 5" # higher the value more AI will stick to the prompt            
             samples = f"1, 2, 3, 4, 5" # how many images to generate
-            await message.channel.send(f'To generate an image, type "!style_preset,negative_prompt,positive_prompt,cfg_scale,samples". For example: "!anime,blurry,A painting of a cat,5,1
-                                       \nFollowing are the available options:
-                                       \nStyle Preset: {style_preset}\nNegative Prompt: {negative_prompt}\nPositive Prompt: {positive_prompt}\nCfg Scale: {cfg_scale}\nSamples: {samples}"')            
+            await message.channel.send(f'To generate an image, type "!style_preset,negative_prompt,positive_prompt,cfg_scale,samples". For example: "!anime,blurry,A painting of a cat,5,1\nFollowing are the available options:\nStyle Preset: {style_preset}\nNegative Prompt: {negative_prompt}\nPositive Prompt: {positive_prompt}\nCfg Scale: {cfg_scale}\nSamples: {samples}"')            
             return
         
         try:
